@@ -546,10 +546,9 @@ class Model:
 # model.train(X, y, validation_data=(X_test, y_test),
 #             epoch=132, batch_size=128, print_every=100)
 # model.save('emotion_rec.model')
+#################################################
 
-
-model = Model.load('emotion_rec.model')
-emotion = {
+EMOTIONS = {
     0 : "Angry",
     1 : "Disgust",
     2 : "Fear",
@@ -558,16 +557,37 @@ emotion = {
     5 : "Sad",
     6 : "Surprise"
 }
+def predict_emotion(model, image_path, show=True, save_path=None):
+    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if gray is None:
+        raise FileNotFoundError(f"Could not read image: {image_path}")
 
+    gray = cv2.resize(gray, (48, 48))
+    gray = 255 - gray
+    data = (gray.reshape(1, -1).astype(np.float32) - 127.5) / 127.5
 
-img_data = cv2.imread('test1.png',cv2.IMREAD_GRAYSCALE)
-img_data =cv2.resize(img_data,(48,48))
-img_data = 255 - img_data
-img_data = (img_data.reshape(1,-1).astype(np.float32) - 127.5) / 127.5
+    confidence = model.predict(data)
+    prediction = model.output_layer_activation.predictions(confidence)
+    label = int(prediction[0])
+    score = float(confidence[0][label])
 
+    img = cv2.imread(image_path)
+    text = f"Emotion: {EMOTIONS[label]}, Confidence: {score:.2f}"
+    cv2.putText(
+        img, text, (10, 30),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2, cv2.LINE_AA
+    )
 
-confidence = model.predict(img_data)
-prediction = model.output_layer_activation.predictions(confidence) 
-print(prediction[0])
-print(emotion[prediction[0]])
+    if save_path:
+        cv2.imwrite(save_path, img)
 
+    if show:
+        cv2.imshow("Emotion Prediction", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return 
+
+model = Model.load('emotion_rec.model')
+model.evaluation(X_test, y_test, batch_size=128)
+predict_emotion(model, "test2.png")
