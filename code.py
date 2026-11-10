@@ -590,4 +590,4 @@ def predict_emotion(model, image_path, show=True, save_path=None):
 
 model = Model.load('emotion_rec.model')
 model.evaluation(X_test, y_test, batch_size=128)
-predict_emotion(model, "test2.png")
+predict_emotion(model, "test1.png")
